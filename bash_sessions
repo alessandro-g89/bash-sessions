@@ -1,0 +1,267 @@
+#!/bin/bash
+
+# bash_sessions - Session manager for the Bash shell
+#
+# Copyright (C) 2016 Alessandro Grassi <alessandro.g89@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+BASH_SESSIONS_DIR="$HOME/.bash_sessions"
+BASH_SESSIONS_MAXIMUM_OUTPUT_LINES="1000"
+
+
+__bs_savepwd(){
+	# check that we are inside a session
+	[ -z "$BASH_SESSION_NAME" ] && return
+	
+	# check that the target directory exists
+	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
+	
+	# save current working directory to a file
+	if [ "$PWD" != "$PREV_PWD" ]; then
+		PREV_PWD="$PWD"
+		echo "$PWD" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
+	fi
+}
+
+# create and activate a new session
+n (){
+	# check number of arguments
+	if [ "$#" -ne 1 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires exactly 1 argument"
+		return
+	fi
+	
+	# check session not existing already
+	if [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
+		echo "Error: session \"$1\" already exists"
+		return
+	fi
+	
+	# quit current session, if any
+	[ -n "$BASH_SESSION_NAME" ] && c
+	
+	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir "${BASH_SESSIONS_DIR}"
+	[ -d "${BASH_SESSIONS_DIR}/$1" ] || mkdir "${BASH_SESSIONS_DIR}/$1"
+	o "$1"
+}
+
+# activate an existing session
+o (){
+	# check number of arguments
+	if [ "$#" -ne 1 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires exactly 1 argument"
+		return
+	fi
+	
+	# check that session exists
+	if ! [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
+		echo "Error: session \"$1\" does not exist"
+		return
+	fi
+	
+	# quit current session, if any
+	[ -n "$BASH_SESSION_NAME" ] && c
+	
+	# check that the session is not already in use
+	if lsof "${BASH_SESSIONS_DIR}/$1/output" &> /dev/null; then
+		echo "Error: session is already in use!"
+		return
+	fi
+	
+	# set session name
+	export BASH_SESSION_NAME="$1"
+	
+	# switch to dedicated history file
+	OLD_HISTFILE="$HISTFILE"
+	echo "o $1" >> "$OLD_HISTFILE"
+	history -c
+	export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+	history -r
+	
+	# add newline to output if needed
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && echo >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	
+	# switch to working directory
+	OLD_PWD="$PWD"
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ] && cd "$(cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd")"
+	
+	# load old output from file
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+		if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
+			tail -n ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail"
+			mv "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail" "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+		fi
+		cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	fi
+	
+	# save output to file
+	OLD_PTS="$(readlink /proc/$$/fd/1)"
+	exec &> >(tee -i -a "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output")
+	
+	# mark session as loaded
+	touch "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
+	
+	# set prompt command to save working directory
+	OLD_PROMPT_COMMAND="${PROMPT_COMMAND}"
+	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd"
+}
+
+# exit active session
+c (){
+	# check number of arguments
+	if [ "$#" -ne 0 ]; then
+		echo "Error: ${FUNCNAME[0]}() does not accept arguments"
+		return
+	fi
+	
+	# revert to old history file
+	export HISTFILE="$OLD_HISTFILE"
+	unset OLD_HISTFILE
+	history -c
+	history -r
+	
+	# revert to old prompt command
+	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
+	unset OLD_PROMPT_COMMAND
+	
+	# stop saving output to file
+	exec &> "${OLD_PTS}"
+	unset OLD_PTS
+	
+	# limit the length of saved output
+	if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
+		tail -n ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail"
+		mv "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail" "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	fi
+	
+	# revert to old working directory
+	cd "$OLD_PWD"
+	unset OLD_PWD
+	
+	# mark session as unloaded
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
+	unset BASH_SESSION_NAME
+
+}
+
+# delete an existing session
+f (){
+	# check number of arguments
+	if [ "$#" -ne 1 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires exactly 1 argument"
+		return
+	fi
+	
+	# check that we are not in a session
+	if [ -n "$BASH_SESSION_NAME" ]; then
+		echo "Exit current session first!"
+		return
+	fi
+	
+	# check if session exists
+	if ! [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
+		echo "Session \"$1\" does not exist!"
+		return
+	fi
+	
+	# ask confirmation and delete session
+	read -p "Delete session \"$1\"? [yN] " -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		rm -r "${BASH_SESSIONS_DIR}/$1"
+		echo "Session \"$1\" deleted"
+	fi
+}
+
+# rename an existing session
+r (){
+	# check number of arguments
+	if [ "$#" -ne 2 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires exactly 2 arguments"
+		return
+	fi
+	
+	# check that we are not in a session
+	if [ -n "$BASH_SESSION_NAME" ]; then
+		echo "Exit current session first!"
+		return
+	fi
+	
+	# check if session exists
+	if ! [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
+		echo "Session \"$1\" does not exist!"
+		return
+	fi
+	
+	mv "${BASH_SESSIONS_DIR}/$1" "${BASH_SESSIONS_DIR}/$2"
+	echo "Session \"$1\" renamed to \"$2\""
+}
+
+# re-open all session which were not explicitly closed
+a (){
+	for SESSION_NAME in $(ls "${BASH_SESSIONS_DIR}"); do
+		if [ -f "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded" ]; then
+			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/output"; then
+				echo "Loading session \"${SESSION_NAME}\""
+				
+				local temp_rc_file="/tmp/.bash_session_rc"
+				local temp_desktop_file="$HOME/.local/share/applications/bash-session.desktop"
+				
+				echo ". ~/.bashrc" > "${temp_rc_file}"
+				echo "o ${SESSION_NAME}" >> "${temp_rc_file}"
+				echo "rm \"${temp_rc_file}\"" >> "${temp_rc_file}"
+				echo "rm \"${temp_desktop_file}\"" >> "${temp_rc_file}"
+				
+				echo "[Desktop Entry]" > "${temp_desktop_file}"
+				echo "Exec=bash --rcfile ${temp_rc_file}" >> "${temp_desktop_file}"
+				echo "Terminal=true" >> "${temp_desktop_file}"
+				echo "Type=Application" >> "${temp_desktop_file}"
+				
+				gtk-launch bash-session.desktop
+			fi
+		fi
+	done
+}
+
+# print label for bash prompt
+__bs_ps1 (){
+	if [ -n "$BASH_SESSION_NAME" ]; then
+		echo "[$BASH_SESSION_NAME]"
+	else
+		echo ""
+	fi
+}
+
+# list sessions
+function e {
+	ls "${BASH_SESSIONS_DIR}"
+}
+
+# completion command
+function _bash_session_comp {
+	local curw
+	COMPREPLY=()
+	curw=${COMP_WORDS[COMP_CWORD]}
+	COMPREPLY=($(compgen -W '`e`' -- $curw))
+	return 0
+}
+
+
+# bind completion command for o, f, r to _comp
+shopt -s progcomp
+complete -F _bash_session_comp o
+complete -F _bash_session_comp f
+complete -F _bash_session_comp r
+
