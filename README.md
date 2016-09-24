@@ -27,16 +27,16 @@ For this to work, the "source ~/bin/bash_sessions" line must appear before the d
 
 bash_sessions lets you save and restore multiple shell "sessions". A session is identified by an arbitrary alphanumeric name, and it includes the following data:
 
-** working directory
-** command history
-** output of the commands printed on the screen (up to the last 1000 lines)
+* working directory
+* command history
+* output of the commands printed on the screen (up to the last 1000 lines)
 
 You will find this useful if you tipycally work with multiple terminal windows which have different usage patterns (e.g. for software compilation/installation, for navigating/searching files, for network troubleshooting...). If you use different sessions, you can close a terminal window, re-open it later and restore it to (almost) exactly the same state as when you closed it.
 
 The main purpose of bash_sessions is to avoid confusion from multiple command histories when you work with multiple terminal windows in parallel. Depending on your settings, one of these two things can typically happen:
 
-** when the last terminal window is closed, it overwrites the history of all the other terminal windows which were concurrently open.
-** every command you execute (from any terminal window) is immediately appended to the history file, thus the commands from all the terminal windows will be interleaved seemingly randomly.
+* when the last terminal window is closed, it overwrites the history of all the other terminal windows which were concurrently open.
+* every command you execute (from any terminal window) is immediately appended to the history file, thus the commands from all the terminal windows will be interleaved seemingly randomly.
 
 Instead, if you use different sessions for different activities, their command histories remain well separated, and additionally the working directory and the screen contents (up to 1000 lines) are retained. Basically, you can resume your work exactly from where you left it.
 
