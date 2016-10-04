@@ -246,6 +246,21 @@ __bs_ps1 (){
 
 # list sessions
 function e {
+	for i in $(ls ${BASH_SESSIONS_DIR}); do
+		if [ -f "${BASH_SESSIONS_DIR}/${i}/loaded" ]; then
+			if lsof "${BASH_SESSIONS_DIR}/${i}/output" &>/dev/null; then
+				echo "${i}*"
+			else
+				echo "${i}+"
+			fi
+		else
+			echo "${i}"
+		fi;
+	done
+}
+
+# helper function for completion
+function __bs_comp_list {
 	ls "${BASH_SESSIONS_DIR}"
 }
 
@@ -254,7 +269,7 @@ function _bash_session_comp {
 	local curw
 	COMPREPLY=()
 	curw=${COMP_WORDS[COMP_CWORD]}
-	COMPREPLY=($(compgen -W '`e`' -- $curw))
+	COMPREPLY=($(compgen -W '`__bs_comp_list`' -- $curw))
 	return 0
 }
 

@@ -117,6 +117,7 @@ e                         list existing sessions
 
 o, f and r support automatic completion with the TAB key.
 
+When using the "e" command, currently active sessions are marked with a \* sign. Also, sessions which are not active but have not been explicitly closed with "c" are marked with a + sign. Those can be restored using the "a" command.
 
 
 ## Contacts
