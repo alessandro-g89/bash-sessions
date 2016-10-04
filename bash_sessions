@@ -76,7 +76,7 @@ o (){
 	
 	# check that the session is not already in use
 	if lsof "${BASH_SESSIONS_DIR}/$1/output" &> /dev/null; then
-		echo "Error: session is already in use!"
+		echo "Error: session \"$1\" is already in use!"
 		return
 	fi
 	
@@ -216,8 +216,8 @@ a (){
 			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/output"; then
 				echo "Loading session \"${SESSION_NAME}\""
 				
-				local temp_rc_file="/tmp/.bash_session_rc"
-				local temp_desktop_file="$HOME/.local/share/applications/bash-session.desktop"
+				local temp_rc_file="/tmp/.bash_session_rc_${SESSION_NAME}"
+				local temp_desktop_file="$HOME/.local/share/applications/bash-session-${SESSION_NAME}.desktop"
 				
 				echo ". ~/.bashrc" > "${temp_rc_file}"
 				echo "o ${SESSION_NAME}" >> "${temp_rc_file}"
@@ -225,11 +225,11 @@ a (){
 				echo "rm \"${temp_desktop_file}\"" >> "${temp_rc_file}"
 				
 				echo "[Desktop Entry]" > "${temp_desktop_file}"
-				echo "Exec=bash --rcfile ${temp_rc_file}" >> "${temp_desktop_file}"
-				echo "Terminal=true" >> "${temp_desktop_file}"
+				echo "Exec=x-terminal-emulator -x bash --rcfile ${temp_rc_file}" >> "${temp_desktop_file}"
 				echo "Type=Application" >> "${temp_desktop_file}"
 				
-				gtk-launch bash-session.desktop
+				gtk-launch "bash-session-${SESSION_NAME}.desktop"
+				sleep 0.1
 			fi
 		fi
 	done
