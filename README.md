@@ -112,7 +112,7 @@ o <session_name>          open an existing session
 c                         close currently active session
 f <session_name>          delete (forget) a session
 r <old_name> <new_name>   rename a session
-a                         re-open all previously loaded sessions in separate windows
+a                         re-open all previously loaded sessions in separate windows (requires the gtk-launch command, from the libgtk-3-bin package)
 e                         list existing sessions
 
 o, f and r support automatic completion with the TAB key.
