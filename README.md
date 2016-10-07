@@ -29,9 +29,10 @@ bash_sessions lets you save and restore multiple shell "sessions". A session is 
 
 * working directory
 * command history
+* environment variables
 * output of the commands printed on the screen (up to the last 1000 lines)
 
-You will find this useful if you tipycally work with multiple terminal windows which have different usage patterns (e.g. for software compilation/installation, for navigating/searching files, for network troubleshooting...). If you use different sessions, you can close a terminal window, re-open it later and restore it to (almost) exactly the same state as when you closed it.
+You will find this useful if you tipycally work with multiple terminal windows which have different usage patterns (e.g. for software compilation/installation, for navigating/searching files, for network troubleshooting...). If you use different sessions, you can close a terminal window, re-open it later and restore it to exactly the same state as when you closed it.
 
 The main purpose of bash_sessions is to avoid confusion from multiple command histories when you work with multiple terminal windows in parallel. Depending on your settings, one of these two things can typically happen:
 
@@ -51,7 +52,7 @@ The first thing to do is to create a new session:
     me@localhost:~ $ n new_session
     me@localhost[new_session]:~ $
 
-The new session is automatically loaded. From now on, the working directory, the command history and the output of the commands are saved to a dedicated directory.
+The new session is automatically loaded. From now on, the working directory, the command history, the environment variables and the output of the commands are saved to a dedicated directory.
 Now we run some commands:
 
     me@localhost[new_session]:~ $ echo hello
@@ -60,9 +61,12 @@ Now we run some commands:
     me@localhost[new_session]:/etc $ cat issue
     Debian GNU/Linux stretch/sid \n \l
 
+    me@localhost[new_session]:/etc $ export FOO="BAR"
+    me@localhost[new_session]:~ $ echo $FOO
+    BAR
     me@localhost[new_session]:/etc $
 
-Everything works as usual. The history contains "echo hello", "cd /etc" and "cat issue".
+Everything works as usual. The history contains "echo hello", "cd /etc" and "cat issue", and $FOO is expanded as BAR.
 Now we close the session.
 
     me@localhost[new_session]:~ $ echo hello
@@ -72,9 +76,11 @@ Now we close the session.
     Debian GNU/Linux stretch/sid \n \l
 
     me@localhost[new_session]:/etc $ c
-    me@localhost:~ $
+    me@localhost:~ $ echo $FOO
+    
+    me@localhost:~ $ 
 
-Now the working directory is back to ~, and the history does not contain any of "echo hello", "cd /etc" or "cat issue".
+Now the working directory is back to ~, the history does not contain any of "echo hello", "cd /etc" or "cat issue", and $FOO is empty.
 Close the terminal window and open it again:
 
     me@localhost:~ $
@@ -88,6 +94,8 @@ Now re-open the session:
     me@localhost[new_session]:/etc $ cat /etc/issue
     Debian GNU/Linux stretch/sid \n \l
 
+    me@localhost[new_session]:/etc $ echo $FOO
+    BAR
     me@localhost[new_session]:/etc $ c
     me@localhost[new_session]:/etc $
 

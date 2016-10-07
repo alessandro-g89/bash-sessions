@@ -18,6 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 BASH_SESSIONS_DIR="$HOME/.bash_sessions"
+BASH_SESSIONS_TEMP_DIR="/tmp/.bash_sessions/"
 BASH_SESSIONS_MAXIMUM_OUTPUT_LINES="1000"
 
 
@@ -33,6 +34,30 @@ __bs_savepwd(){
 		PREV_PWD="$PWD"
 		echo "$PWD" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
 	fi
+}
+
+# save changes to the environment
+__bs_saveenv(){
+	# check that we are inside a session
+	[ -z "$BASH_SESSION_NAME" ] && return
+	
+	# check that the target directory exists
+	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
+	
+	# check that temp dir exists
+	[ -d "${BASH_SESSIONS_TEMP_DIR}" ] || mkdir "${BASH_SESSIONS_TEMP_DIR}"
+	
+	# save changes to the environment in a file
+	cat "/proc/$$/environ" | tr '\0' '\n' | sort > "${BASH_SESSIONS_TEMP_DIR}/initial_env_${BASH_SESSION_NAME}"
+	env | sort > "${BASH_SESSIONS_TEMP_DIR}/current_env_${BASH_SESSION_NAME}"
+	diff --new-line-format=%L --old-line-format= --unchanged-line-format= \
+		"${BASH_SESSIONS_TEMP_DIR}/initial_env_${BASH_SESSION_NAME}" \
+		"${BASH_SESSIONS_TEMP_DIR}/current_env_${BASH_SESSION_NAME}" \
+		| egrep -v "(PROMPT_COMMAND|SHLVL)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
+		"${BASH_SESSIONS_TEMP_DIR}/initial_env_${BASH_SESSION_NAME}" \
+		"${BASH_SESSIONS_TEMP_DIR}/current_env_${BASH_SESSION_NAME}" \
+		| egrep -v "PATH" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # create and activate a new session
@@ -70,6 +95,9 @@ o (){
 		echo "Error: session \"$1\" does not exist"
 		return
 	fi
+	
+	# save existing environment
+	env | sort | grep -v "PROMPT_COMMAND" >"${BASH_SESSIONS_TEMP_DIR}/previous_env_${1}"
 	
 	# quit current session, if any
 	[ -n "$BASH_SESSION_NAME" ] && c
@@ -115,7 +143,15 @@ o (){
 	
 	# set prompt command to save working directory
 	OLD_PROMPT_COMMAND="${PROMPT_COMMAND}"
-	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd"
+	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd;__bs_saveenv"
+	
+	# restore environment
+	while read line; do
+		export "$line";
+	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+	while read line; do
+		unset "$line";
+	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # exit active session
@@ -132,10 +168,6 @@ c (){
 	history -c
 	history -r
 	
-	# revert to old prompt command
-	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
-	unset OLD_PROMPT_COMMAND
-	
 	# stop saving output to file
 	exec &> "${OLD_PTS}"
 	unset OLD_PTS
@@ -149,6 +181,27 @@ c (){
 	# revert to old working directory
 	cd "$OLD_PWD"
 	unset OLD_PWD
+	
+	# restore previous environment
+	while read line; do
+		export "$line";
+	done < "${BASH_SESSIONS_TEMP_DIR}/previous_env_${BASH_SESSION_NAME}"
+	env | sort > "${BASH_SESSIONS_TEMP_DIR}/current_env_${BASH_SESSION_NAME}"
+	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
+		"${BASH_SESSIONS_TEMP_DIR}/current_env_${BASH_SESSION_NAME}" \
+		"${BASH_SESSIONS_TEMP_DIR}/previous_env_${BASH_SESSION_NAME}" \
+		| cut -d = -f 1 | egrep -v "HISTFILE|BASH_SESSION_NAME" > "${BASH_SESSIONS_TEMP_DIR}/env_deleted_${BASH_SESSION_NAME}"
+	while read line; do
+		unset "$line";
+	done < "${BASH_SESSIONS_TEMP_DIR}/env_deleted_${BASH_SESSION_NAME}"
+	rm "${BASH_SESSIONS_TEMP_DIR}/env_deleted_${BASH_SESSION_NAME}"
+	rm "${BASH_SESSIONS_TEMP_DIR}/current_env_${BASH_SESSION_NAME}"
+	rm "${BASH_SESSIONS_TEMP_DIR}/previous_env_${BASH_SESSION_NAME}"
+	rm "${BASH_SESSIONS_TEMP_DIR}/initial_env_${BASH_SESSION_NAME}"
+	
+	# revert to old prompt command
+	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
+	unset OLD_PROMPT_COMMAND
 	
 	# mark session as unloaded
 	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
