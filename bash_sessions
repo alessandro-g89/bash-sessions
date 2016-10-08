@@ -1,4 +1,5 @@
 #!/bin/bash
+IFS=$'\n\t'
 
 # bash_sessions - Session manager for the Bash shell
 #
@@ -329,7 +330,7 @@ function _bash_session_comp {
 
 # bind completion command for o, f, r to _comp
 shopt -s progcomp
-complete -F _bash_session_comp o
-complete -F _bash_session_comp f
-complete -F _bash_session_comp r
+complete -o filenames -F _bash_session_comp o
+complete -o filenames -F _bash_session_comp f
+complete -o filenames -F _bash_session_comp r
 
