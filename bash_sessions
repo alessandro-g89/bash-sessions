@@ -117,6 +117,7 @@ o (){
 	
 	# switch to dedicated history file
 	OLD_HISTFILE="$HISTFILE"
+	echo "#$(date +%s)" >> "$OLD_HISTFILE"
 	echo "o $1" >> "$OLD_HISTFILE"
 	history -c
 	HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
