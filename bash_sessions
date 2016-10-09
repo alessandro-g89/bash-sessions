@@ -174,9 +174,10 @@ c (){
 	fi
 	
 	# revert to old history file
-	export HISTFILE="$OLD_HISTFILE"
+	# FIXME: history -c here may cause a "bus error", not sure why
+	#history -c
+	HISTFILE="$OLD_HISTFILE"
 	unset OLD_HISTFILE
-	history -c
 	history -r
 	
 	# stop saving output to file
