@@ -46,11 +46,11 @@ __bs_saveenv(){
 	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
 	
 	# check that temp dir exists
-	[ -d "${BASH_SESSIONS_TEMP_DIR}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}"
+	[ -d "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}"
 	
 	# save changes to the environment in a file
-	cat "/proc/$$/environ" | tr '\0' '\n' | sort > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env"
-	env | sort > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env"
+	cat "/proc/$$/environ" | tr '\0' '\n' | sort | grep "=" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env"
+	env | sort | grep "=" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env"
 	diff --new-line-format=%L --old-line-format= --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
@@ -107,7 +107,7 @@ o (){
 	fi
 	
 	# check that temp dir exists
-	[ -d "${BASH_SESSIONS_TEMP_DIR}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${1}"
+	[ -d "${BASH_SESSIONS_TEMP_DIR}/${1}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${1}"
 	
 	# save existing environment
 	env | sort | egrep -v "PROMPT_COMMAND|COMP_WORDBREAKS" | grep "=" >"${BASH_SESSIONS_TEMP_DIR}/${1}/previous_env"
@@ -119,7 +119,7 @@ o (){
 	OLD_HISTFILE="$HISTFILE"
 	echo "o $1" >> "$OLD_HISTFILE"
 	history -c
-	export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+	HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
 	history -r
 	
 	# add newline to output if needed
@@ -166,6 +166,12 @@ c (){
 		return
 	fi
 	
+	# check that we are in a session
+	if [ -z "$BASH_SESSION_NAME" ]; then
+		echo "No session active!"
+		return
+	fi
+	
 	# revert to old history file
 	export HISTFILE="$OLD_HISTFILE"
 	unset OLD_HISTFILE
@@ -190,18 +196,15 @@ c (){
 	while read line; do
 		export "$line";
 	done < "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/previous_env"
-	env | sort > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env"
+	env | sort | grep "=" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env"
 	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/previous_env" \
-		| cut -d = -f 1 | egrep -v "HISTFILE|BASH_SESSION_NAME" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/env_deleted"
+		| grep "=" | cut -d = -f 1 | egrep -v "HISTFILE|BASH_SESSION_NAME" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/env_deleted"
 	while read line; do
 		unset "$line";
 	done < "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/env_deleted"
-	rm "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}env_deleted"
-	rm "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}current_env"
-	rm "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}previous_env"
-	rm "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}initial_env"
+	rm "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/"*
 	
 	# revert to old prompt command
 	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
