@@ -1,4 +1,4 @@
-### bash_sessions - Session manager for the Bash shell
+# bash_sessions - Session manager for the Bash shell
 
 ## Installation
 
