@@ -128,6 +128,14 @@ o, f and r support automatic completion with the TAB key.
 When using the "e" command, currently active sessions are marked with a \* sign. Also, sessions which are not active but have not been explicitly closed with "c" are marked with a + sign. Those can be restored using the "a" command.
 
 
+
+## Known issues
+Interactive applications using ncurses (like top or aptitude) will probably misbehave because they can't properly detect the terminal characteristics. As a workaround, redirect stdout to $OLD_PTS, like this:
+
+    me@localhost:~ $ aptitude >$OLD_PTS
+
+
+
 ## Contacts
 
 Send comments, suggestions or bug reports to Alessandro Grassi <alessandro.g89@gmail.com>. Keep in mind that I do this on a best-effort basis, so don't expect frequent updates.
