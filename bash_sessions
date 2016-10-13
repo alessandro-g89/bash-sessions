@@ -54,11 +54,11 @@ __bs_saveenv(){
 	diff --new-line-format=%L --old-line-format= --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(PROMPT_COMMAND|SHLVL)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+		| egrep -v "(PROMPT_COMMAND|SHLVL|COMP_WORDBREAKS)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
 	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "PATH" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+		| egrep -v "(PATH|SHLVL|COMP_WORDBREAKS)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # create and activate a new session
@@ -151,10 +151,10 @@ o (){
 	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd;__bs_saveenv"
 	
 	# restore environment
-	while read line; do
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ] && while read line; do
 		export "$line";
 	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
-	while read line; do
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ] && while read line; do
 		unset "$line";
 	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
