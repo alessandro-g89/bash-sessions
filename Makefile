@@ -4,7 +4,8 @@ all:
 	@echo "Please run 'make install'"
 
 install:
-	install -m 755 bash_sessions $(INSTALL_DIR)
+	mkdir -p $(INSTALL_DIR)
+	install -m 755 bash_sessions $(INSTALL_DIR)/bash_sessions
 	@echo ""
 	@echo "Installation completed. Please add 'source $(INSTALL_DIR)/bash_sessions' to your .bashrc file"
 	@echo ""
