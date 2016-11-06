@@ -206,14 +206,14 @@ c (){
 	while read line; do
 		unset "$line";
 	done < "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/env_deleted"
-	rm "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/"*
+	rm -f "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/"*
 	
 	# revert to old prompt command
 	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
 	unset OLD_PROMPT_COMMAND
 	
 	# mark session as unloaded
-	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && rm -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
 	unset BASH_SESSION_NAME
 
 }
@@ -242,7 +242,7 @@ f (){
 	read -p "Delete session \"$1\"? [yN] " -n 1 -r
 	echo
 	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		rm -r "${BASH_SESSIONS_DIR}/$1"
+		rm -f -r "${BASH_SESSIONS_DIR}/$1"
 		echo "Session \"$1\" deleted"
 	fi
 }
@@ -283,8 +283,8 @@ a (){
 				
 				echo ". ~/.bashrc" > "${temp_rc_file}"
 				echo "o ${SESSION_NAME}" >> "${temp_rc_file}"
-				echo "rm \"${temp_rc_file}\"" >> "${temp_rc_file}"
-				echo "rm \"${temp_desktop_file}\"" >> "${temp_rc_file}"
+				echo "rm -f \"${temp_rc_file}\"" >> "${temp_rc_file}"
+				echo "rm -f \"${temp_desktop_file}\"" >> "${temp_rc_file}"
 				
 				echo "[Desktop Entry]" > "${temp_desktop_file}"
 				echo "Exec=x-terminal-emulator -x bash --rcfile ${temp_rc_file}" >> "${temp_desktop_file}"
