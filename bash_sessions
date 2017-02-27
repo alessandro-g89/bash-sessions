@@ -120,7 +120,7 @@ o (){
 	echo "#$(date +%s)" >> "$OLD_HISTFILE"
 	echo "o $1" >> "$OLD_HISTFILE"
 	history -c
-	HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+	export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
 	history -r
 	
 	# add newline to output if needed
@@ -139,16 +139,12 @@ o (){
 		cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
 	fi
 	
-	# save output to file
-	OLD_PTS="$(readlink /proc/$$/fd/1)"
-	exec &> >(tee -i -a "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output")
-	
 	# mark session as loaded
 	touch "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
 	
 	# set prompt command to save working directory
 	OLD_PROMPT_COMMAND="${PROMPT_COMMAND}"
-	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd;__bs_saveenv"
+	export PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd;__bs_saveenv"
 	
 	# restore environment
 	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ] && while read line; do
@@ -157,38 +153,19 @@ o (){
 	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ] && while read line; do
 		unset "$line";
 	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
-}
-
-# exit active session
-c (){
-	# check number of arguments
-	if [ "$#" -ne 0 ]; then
-		echo "Error: ${FUNCNAME[0]}() does not accept arguments"
-		return
-	fi
 	
-	# check that we are in a session
-	if [ -z "$BASH_SESSION_NAME" ]; then
-		echo "No session active!"
-		return
-	fi
+	# the session is executed inside script, to save the output to a file
+	script -a -q "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	
+	#everything that follows happens after the session is closed
 	
 	# revert to old history file
 	# FIXME: history -c here may cause a "bus error", not sure why
 	#history -c
+	unset HISTFILE
 	HISTFILE="$OLD_HISTFILE"
 	unset OLD_HISTFILE
 	history -r
-	
-	# stop saving output to file
-	exec &> "${OLD_PTS}"
-	unset OLD_PTS
-	
-	# limit the length of saved output
-	if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
-		tail -n ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail"
-		mv "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail" "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
-	fi
 	
 	# revert to old working directory
 	cd "$OLD_PWD"
@@ -209,12 +186,37 @@ c (){
 	rm -f "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/"*
 	
 	# revert to old prompt command
+	unset PROMPT_COMMAND
 	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
 	unset OLD_PROMPT_COMMAND
+	
+	# limit the length of saved output
+	if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
+		tail -n ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail"
+		mv "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail" "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	fi
 	
 	# mark session as unloaded
 	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && rm -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
 	unset BASH_SESSION_NAME
+	
+}
+
+# exit active session
+c (){
+	# check number of arguments
+	if [ "$#" -ne 0 ]; then
+		echo "Error: ${FUNCNAME[0]}() does not accept arguments"
+		return
+	fi
+	
+	# check that we are in a session
+	if [ -z "$BASH_SESSION_NAME" ]; then
+		echo "No session active!"
+		return
+	fi
+	
+	exit
 
 }
 
