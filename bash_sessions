@@ -54,11 +54,11 @@ __bs_saveenv(){
 	diff --new-line-format=%L --old-line-format= --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(PROMPT_COMMAND|SHLVL|COMP_WORDBREAKS)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+		| egrep -v "(PATH|PROMPT_COMMAND|SHLVL|COMP_WORDBREAKS|PWD|_)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
 	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(PATH|SHLVL|COMP_WORDBREAKS)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+		| egrep -v "(PATH|SHLVL|COMP_WORDBREAKS|PWD|_)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # create and activate a new session
@@ -115,20 +115,19 @@ o (){
 	# set session name
 	export BASH_SESSION_NAME="${1}"
 	
+	# create script to activate session
+	echo '[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc'  > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo '[ -f ~/.bashrc ] && . ~/.bashrc' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	
 	# switch to dedicated history file
-	OLD_HISTFILE="$HISTFILE"
-	echo "#$(date +%s)" >> "$OLD_HISTFILE"
-	echo "o $1" >> "$OLD_HISTFILE"
-	history -c
-	export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
-	history -r
+	echo 'history -c' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo 'export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
 	# add newline to output if needed
 	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && echo >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
 	
 	# switch to working directory
-	OLD_PWD="$PWD"
-	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ] && cd "$(cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd")"
+	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ] && echo 'cd "$(cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd")"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
 	# load old output from file
 	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
@@ -142,53 +141,24 @@ o (){
 	# mark session as loaded
 	touch "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
 	
-	# set prompt command to save working directory
-	OLD_PROMPT_COMMAND="${PROMPT_COMMAND}"
-	export PROMPT_COMMAND="${OLD_PROMPT_COMMAND}; __bs_savepwd;__bs_saveenv"
+	# set prompt command to save working directory and environment
+	echo 'export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_savepwd;__bs_saveenv"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
 	# restore environment
-	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ] && while read line; do
-		export "$line";
-	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
-	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ] && while read line; do
-		unset "$line";
-	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+	echo '[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ] && while read line; do' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo '	export $line;' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo 'done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo '[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ] && while read line; do' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo '	unset $line;' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo 'done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
 	# the session is executed inside script, to save the output to a file
-	script -a -q "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	script -a -q "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" -c "bash --rcfile \"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc\""
 	
 	#everything that follows happens after the session is closed
 	
-	# revert to old history file
-	# FIXME: history -c here may cause a "bus error", not sure why
-	#history -c
-	unset HISTFILE
-	HISTFILE="$OLD_HISTFILE"
-	unset OLD_HISTFILE
-	history -r
-	
-	# revert to old working directory
-	cd "$OLD_PWD"
-	unset OLD_PWD
-	
-	# restore previous environment
-	while read line; do
-		export "$line";
-	done < "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/previous_env"
-	env | sort | grep "=" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env"
-	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
-		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/previous_env" \
-		| grep "=" | cut -d = -f 1 | egrep -v "HISTFILE|BASH_SESSION_NAME" > "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/env_deleted"
-	while read line; do
-		unset "$line";
-	done < "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/env_deleted"
+	# delete temporary files
 	rm -f "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/"*
-	
-	# revert to old prompt command
-	unset PROMPT_COMMAND
-	PROMPT_COMMAND="${OLD_PROMPT_COMMAND}"
-	unset OLD_PROMPT_COMMAND
 	
 	# limit the length of saved output
 	if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
@@ -216,7 +186,7 @@ c (){
 		return
 	fi
 	
-	exit
+	exit &>/dev/null
 
 }
 
