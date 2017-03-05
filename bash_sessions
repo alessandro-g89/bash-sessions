@@ -73,17 +73,25 @@ n (){
 	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir -p "${BASH_SESSIONS_DIR}"
 	
 	# check session not existing already
-	if [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
-		echo "Error: session \"$1\" already exists"
+	if [ -d "${BASH_SESSIONS_DIR}/${1}" ]; then
+		echo "Error: session \"${1}\" already exists"
 		return
 	fi
 	
 	# quit current session, if any
-	[ -n "$BASH_SESSION_NAME" ] && c
+	if [ -n "$BASH_SESSION_NAME" ]; then
+		echo "Error: close current session first"
+		return
+	fi
 	
-	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir "${BASH_SESSIONS_DIR}"
-	[ -d "${BASH_SESSIONS_DIR}/$1" ] || mkdir "${BASH_SESSIONS_DIR}/$1"
-	o "$1"
+	# create directory for new session
+	[ -d "${BASH_SESSIONS_DIR}/${1}" ] || mkdir -p "${BASH_SESSIONS_DIR}/${1}"
+	
+	# copy last part of current history to new session
+	tail -n 100 "${HISTFILE}" > "${BASH_SESSIONS_DIR}/${1}/history"
+	
+	# activate new session
+	o "${1}"
 }
 
 # activate an existing session
