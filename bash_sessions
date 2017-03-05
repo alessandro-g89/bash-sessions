@@ -54,11 +54,11 @@ __bs_saveenv(){
 	diff --new-line-format=%L --old-line-format= --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(PATH|PROMPT_COMMAND|SHLVL|COMP_WORDBREAKS|PWD|_)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+		| egrep -v "(^PATH=|^PROMPT_COMMAND=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^_=)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
 	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(PATH|SHLVL|COMP_WORDBREAKS|PWD|_)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+		| egrep -v "(^PATH=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^_=)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # create and activate a new session
@@ -106,14 +106,11 @@ o (){
 		return
 	fi
 	
-	# check that temp dir exists
-	[ -d "${BASH_SESSIONS_TEMP_DIR}/${1}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${1}"
-	
-	# save existing environment
-	env | sort | egrep -v "PROMPT_COMMAND|COMP_WORDBREAKS" | grep "=" >"${BASH_SESSIONS_TEMP_DIR}/${1}/previous_env"
-	
 	# set session name
 	export BASH_SESSION_NAME="${1}"
+	
+	# check that temp dir exists
+	[ -d "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}"
 	
 	# create script to activate session
 	echo '[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc'  > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
