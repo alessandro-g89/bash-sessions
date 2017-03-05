@@ -69,6 +69,9 @@ n (){
 		return
 	fi
 	
+	# create sessions directory if needed
+	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir -p "${BASH_SESSIONS_DIR}"
+	
 	# check session not existing already
 	if [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
 		echo "Error: session \"$1\" already exists"
@@ -90,6 +93,9 @@ o (){
 		echo "Error: ${FUNCNAME[0]}() requires exactly 1 argument"
 		return
 	fi
+	
+	# create sessions directory if needed
+	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir -p "${BASH_SESSIONS_DIR}"
 	
 	# check that session exists
 	if ! [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
@@ -277,6 +283,10 @@ __bs_ps1 (){
 
 # list sessions
 function e {
+	
+	# create sessions directory if needed
+	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir -p "${BASH_SESSIONS_DIR}"
+	
 	for i in $(ls ${BASH_SESSIONS_DIR}); do
 		if [ -f "${BASH_SESSIONS_DIR}/${i}/loaded" ]; then
 			if lsof "${BASH_SESSIONS_DIR}/${i}/output" &>/dev/null; then
@@ -292,6 +302,10 @@ function e {
 
 # helper function for completion
 function __bs_comp_list {
+	
+	# create sessions directory if needed
+	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir -p "${BASH_SESSIONS_DIR}"
+	
 	ls "${BASH_SESSIONS_DIR}"
 }
 
