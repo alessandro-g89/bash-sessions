@@ -58,7 +58,7 @@ __bs_saveenv(){
 	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(^PATH=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^_=)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+		| egrep -v "(^PATH=|^PROMPT_COMMAND=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^_=)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # create and activate a new session
