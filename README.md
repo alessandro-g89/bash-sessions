@@ -129,12 +129,6 @@ When using the "e" command, currently active sessions are marked with a \* sign.
 
 
 
-## Known issues
-Interactive applications using ncurses (like top or aptitude) will probably misbehave because they can't properly detect the terminal characteristics. As a workaround, redirect stdout to $OLD_PTS, like this:
-
-    me@localhost:~ $ aptitude >$OLD_PTS
-
-
 
 ## Contacts
 
