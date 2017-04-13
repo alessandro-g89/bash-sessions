@@ -12,7 +12,7 @@ Then edit your .bashrc file to include ~/bin/bash_sessions by adding the followi
 
 It is also recommended that you add $(__bs_ps1) in your prompt, so you can easily see when a session is active and which session it is.
 
-For example, if you PS1 is defined like this:
+For example, if your PS1 is defined like this:
 
     PS1='\u@\h:\w\$ '
 
@@ -115,13 +115,13 @@ If have more than one session saved, all the sessions which were not explicitly 
 
 bash_sessions defines the following commands that you can use:
 
-n <session_name>          create a new empty session
-o <session_name>          open an existing session
-c                         close currently active session
-f <session_name>          delete (forget) a session
-r <old_name> <new_name>   rename a session
-a                         re-open all previously loaded sessions in separate windows (requires the gtk-launch command, from the libgtk-3-bin package)
-e                         list existing sessions
+    n <session_name>          create a new empty session
+    o <session_name>          open an existing session
+    c                         close currently active session
+    f <session_name>          delete (forget) a session
+    r <old_name> <new_name>   rename a session
+    a                         re-open all previously loaded sessions in separate windows (requires the gtk-launch command, from the libgtk-3-bin package)
+    e                         list existing sessions
 
 o, f and r support automatic completion with the TAB key.
 
