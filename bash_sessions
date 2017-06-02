@@ -244,9 +244,15 @@ r (){
 		return
 	fi
 	
-	# check if session exists
+	# check if source session exists
 	if ! [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
 		echo "Session \"$1\" does not exist!"
+		return
+	fi
+	
+	# check if destination session exists
+	if [ -d "${BASH_SESSIONS_DIR}/$2" ]; then
+		echo "Session \"$2\" already exists!"
 		return
 	fi
 	
