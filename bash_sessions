@@ -254,6 +254,36 @@ r (){
 	echo "Session \"$1\" renamed to \"$2\""
 }
 
+#  duplicate an existing session
+b (){
+	# check number of arguments
+	if [ "$#" -ne 2 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires exactly 2 arguments"
+		return
+	fi
+	
+	# check that we are not in a session
+	if [ -n "$BASH_SESSION_NAME" ]; then
+		echo "Exit current session first!"
+		return
+	fi
+	
+	# check if source session exists
+	if ! [ -d "${BASH_SESSIONS_DIR}/$1" ]; then
+		echo "Session \"$1\" does not exist!"
+		return
+	fi
+	
+	# check if destination session exists
+	if [ -d "${BASH_SESSIONS_DIR}/$2" ]; then
+		echo "Session \"$2\" already exists!"
+		return
+	fi
+	
+	cp -R "${BASH_SESSIONS_DIR}/$1" "${BASH_SESSIONS_DIR}/$2"
+	echo "Session \"$1\" copied to \"$2\""
+}
+
 # re-open all session which were not explicitly closed
 a (){
 	for SESSION_NAME in $(ls "${BASH_SESSIONS_DIR}"); do
