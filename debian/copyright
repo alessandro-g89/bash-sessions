@@ -1,1 +1,8 @@
- 
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Contact: Alessandro Grassi <alessandro.g89@gmail.com>
+Source: https://github.com/alessandro-g89/bash-sessions
+
+Files: *
+Copyright: 2018 Alessandro Grassi
+License: GPL-3+
+
