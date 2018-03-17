@@ -1,13 +1,13 @@
-INSTALL_DIR=~/bin
+prefix=/usr/local
 
 all:
 	@echo "Please run 'make install'"
 
 install:
-	mkdir -p $(INSTALL_DIR)
-	install -m 755 bash_sessions $(INSTALL_DIR)/bash_sessions
+	mkdir -p $(DESTDIR)$(prefix)/bin
+	install -m 755 bash_sessions $(DESTDIR)$(prefix)/bin/bash_sessions
 	@echo ""
-	@echo "Installation completed. Please add 'source $(INSTALL_DIR)/bash_sessions' to your .bashrc file"
+	@echo "Installation completed. Please add 'source $(DESTDIR)$(prefix)/bash_sessions' to your .bashrc file"
 	@echo ""
 	@echo "You may also want to add \$$(__bs_ps1) in the PS1 environment variable defined in .bashrc, e.g."
 	@echo ""
@@ -24,3 +24,4 @@ install:
 	@echo 'e                         list existing sessions'
 
 .PHONY: all install
+
