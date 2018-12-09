@@ -1,5 +1,11 @@
-bash-sessions (1.0-1) UNRELEASED; urgency=low
+bash-sessions (1.0-2) testing; urgency=medium
+
+  * Improved packaging
+
+ -- Alessandro Grassi <alessandro.g89@gmail.com>  Sun, 09 Dec 2018 18:48:22 +0100
+
+bash-sessions (1.0-1) testing; urgency=low
 
   * Initial release.
 
- -- Alessandro Grassi <alessandro.g89@gmail.com>  Sat, 17 Mar 2018 17:28:03 +0100
+ -- Alessandro Grassi <alessandro.g89@gmail.com>  Sun, 09 Dec 2018 18:47:29 +0100
