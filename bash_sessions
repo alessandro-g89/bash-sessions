@@ -18,29 +18,29 @@ IFS=$'\n\t'
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-BASH_SESSIONS_DIR="$HOME/.bash_sessions"
+BASH_SESSIONS_DIR="${HOME}/.bash_sessions"
 BASH_SESSIONS_TEMP_DIR="/tmp/.bash_sessions/"
 BASH_SESSIONS_MAXIMUM_OUTPUT_LINES="1000"
 
 
 __bs_savepwd(){
 	# check that we are inside a session
-	[ -z "$BASH_SESSION_NAME" ] && return
+	[ -z "${BASH_SESSION_NAME}" ] && return
 	
 	# check that the target directory exists
 	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
 	
 	# save current working directory to a file
-	if [ "$PWD" != "$PREV_PWD" ]; then
-		PREV_PWD="$PWD"
-		echo "$PWD" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
+	if [ "${PWD}" != "${PREV_PWD}" ]; then
+		PREV_PWD="${PWD}"
+		echo "${PWD}" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
 	fi
 }
 
 # save changes to the environment
 __bs_saveenv(){
 	# check that we are inside a session
-	[ -z "$BASH_SESSION_NAME" ] && return
+	[ -z "${BASH_SESSION_NAME}" ] && return
 	
 	# check that the target directory exists
 	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
@@ -54,11 +54,11 @@ __bs_saveenv(){
 	diff --new-line-format=%L --old-line-format= --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(^PATH=|^PROMPT_COMMAND=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^_=)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+		| egrep -v "(^PATH=|^PROMPT_COMMAND=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^HISTFILE=|^_=)" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
 	diff --new-line-format= --old-line-format=%L --unchanged-line-format= \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/initial_env" \
 		"${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/current_env" \
-		| egrep -v "(^PATH=|^PROMPT_COMMAND=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^_=)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+		| egrep -v "(^PATH=|^PROMPT_COMMAND=|^SHLVL=|^COMP_WORDBREAKS=|^PWD=|^HISTFILE=|^_=)" | cut -d = -f 1 > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
 }
 
 # create and activate a new session
@@ -79,7 +79,7 @@ n (){
 	fi
 	
 	# quit current session, if any
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Error: close current session first"
 		return
 	fi
@@ -112,7 +112,7 @@ o (){
 	fi
 	
 	# quit current session, if any
-	[ -n "$BASH_SESSION_NAME" ] && c
+	[ -n "${BASH_SESSION_NAME}" ] && c
 	
 	# check that the session is not already in use
 	if lsof "${BASH_SESSIONS_DIR}/$1/output" &> /dev/null; then
@@ -127,19 +127,42 @@ o (){
 	[ -d "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}" ] || mkdir -p "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}"
 	
 	# create script to activate session
-	echo '[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc'  > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo '[ -f ~/.bashrc ] && . ~/.bashrc' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
+	echo '
+# load global settings
+[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+# load local settings
+[ -f ~/.bashrc ] && . ~/.bashrc
+
+# switch to dedicated history file
+if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history" ]; then
+	history -c
+	export BASH_SESSIONS_OLD_HISTFILE="${HISTFILE}"
+	export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+fi
+
+# switch to working directory
+if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
+	cd "$(cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd")"
+	export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_savepwd"
+fi
+
+# load environment
+if [[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" || -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ]]; then
+	while read line; do
+		export $line;
+	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+	while read line; do
+		unset $line;
+	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+	export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_saveenv"
+fi
+
+'  > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
-	# switch to dedicated history file
-	echo 'history -c' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo 'export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
 	# add newline to output if needed
 	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded" ] && echo >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
-	
-	# switch to working directory
-	[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ] && echo 'cd "$(cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd")"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	
+		
 	# load old output from file
 	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
 		if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
@@ -148,23 +171,17 @@ o (){
 		fi
 		cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
 	fi
-	
-	# mark session as loaded
-	touch "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
-	
-	# set prompt command to save working directory and environment
-	echo 'export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_savepwd;__bs_saveenv"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	
-	# restore environment
-	echo '[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ] && while read line; do' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo '	export $line;' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo 'done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo '[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ] && while read line; do' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo '	unset $line;' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	echo 'done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
-	
-	# the session is executed inside script, to save the output to a file
-	script -a -q "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" -c "bash --rcfile \"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc\""
+
+	# the session is executed inside script, to save the output to a file fi desired, with a lock on "loaded" to mark the session as active
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+		BASH_SESSION_OUTPUT_FILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	else
+		BASH_SESSION_OUTPUT_FILE="/dev/null"
+	fi
+	(
+		flock -n 9 || exit 1
+		script -a -q "${BASH_SESSION_OUTPUT_FILE}" -c "bash --rcfile \"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc\""
+	) 9>"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
 	
 	#everything that follows happens after the session is closed
 	
@@ -172,9 +189,11 @@ o (){
 	rm -f "${BASH_SESSIONS_TEMP_DIR}/${BASH_SESSION_NAME}/"*
 	
 	# limit the length of saved output
-	if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
-		tail -n ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail"
-		mv "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail" "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+		if [ $(wc -l "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" | cut -f 1 -d " ") -ge ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} ]; then
+			tail -n ${BASH_SESSIONS_MAXIMUM_OUTPUT_LINES} "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail"
+			mv "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output.tail" "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+		fi
 	fi
 	
 	# mark session as unloaded
@@ -192,7 +211,7 @@ c (){
 	fi
 	
 	# check that we are in a session
-	if [ -z "$BASH_SESSION_NAME" ]; then
+	if [ -z "${BASH_SESSION_NAME}" ]; then
 		echo "No session active!"
 		return
 	fi
@@ -210,7 +229,7 @@ f (){
 	fi
 	
 	# check that we are not in a session
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Exit current session first!"
 		return
 	fi
@@ -224,7 +243,7 @@ f (){
 	# ask confirmation and delete session
 	read -p "Delete session \"$1\"? [yN] " -n 1 -r
 	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
+	if [[ ${REPLY} =~ ^[Yy]$ ]]; then
 		rm -f -r "${BASH_SESSIONS_DIR}/$1"
 		echo "Session \"$1\" deleted"
 	fi
@@ -239,7 +258,7 @@ r (){
 	fi
 	
 	# check that we are not in a session
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Exit current session first!"
 		return
 	fi
@@ -269,7 +288,7 @@ b (){
 	fi
 	
 	# check that we are not in a session
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Exit current session first!"
 		return
 	fi
@@ -294,11 +313,11 @@ b (){
 a (){
 	for SESSION_NAME in $(ls "${BASH_SESSIONS_DIR}"); do
 		if [ -f "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded" ]; then
-			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/output"; then
+			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded"; then
 				echo "Loading session \"${SESSION_NAME}\""
 				
 				local temp_rc_file="/tmp/.bash_session_rc_${SESSION_NAME}"
-				local temp_desktop_file="$HOME/.local/share/applications/bash-session-${SESSION_NAME}.desktop"
+				local temp_desktop_file="${HOME}/.local/share/applications/bash-session-${SESSION_NAME}.desktop"
 				
 				echo ". ~/.bashrc" > "${temp_rc_file}"
 				echo "o ${SESSION_NAME}" >> "${temp_rc_file}"
@@ -316,10 +335,92 @@ a (){
 	done
 }
 
+# change settings for active session
+S (){
+	# check number of arguments
+	if [ "$#" -ne 2 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires exactly 2 arguments"
+		return
+	fi
+
+	# check that we are in a session
+	if [ -z "${BASH_SESSION_NAME}" ]; then
+		echo "No session active!"
+		return
+	fi
+
+	if [ "${1}" == "output" ]; then
+		if [ "${2}" == "on" ]; then
+			if ! [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+				touch "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+				echo "bash_session: saving output requires exiting and re-entering session to become effective"
+			fi
+		elif [ "${2}" == "off" ]; then
+			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+				rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+			fi
+		else
+			echo "bash_sessions: invalid argument \"${2}\""
+		fi
+
+	elif [ "${1}" == "pwd" ]; then
+		if [ "${2}" == "on" ]; then
+			if ! [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
+				export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_savepwd"
+			fi
+		elif [ "${2}" == "off" ]; then
+			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
+				rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
+				export PROMPT_COMMAND="${PROMPT_COMMAND/;__bs_savepwd/}"
+			fi
+		else
+			echo "bash_sessions: invalid argument \"${2}\""
+		fi
+
+	elif [ "${1}" == "env" ]; then
+		if [ "${2}" == "on" ]; then
+			if ! [[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" && -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ]]; then
+				export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_saveenv"
+			fi
+		elif [ "${2}" == "off" ]; then
+			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ]; then
+				rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed"
+			fi
+			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ]; then
+				rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
+			fi
+			export PROMPT_COMMAND="${PROMPT_COMMAND/;__bs_saveenv/}"
+		else
+			echo "bash_sessions: invalid argument \"${2}\""
+		fi
+
+	elif [ "${1}" == "history" ]; then
+		if [ "${2}" == "on" ]; then
+			if ! [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history" ]; then
+				tail -n 100 "${HISTFILE}" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+				history -c
+				export BASH_SESSIONS_OLD_HISTFILE="${HISTFILE}"
+				export HISTFILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+			fi
+		elif [ "${2}" == "off" ]; then
+			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history" ]; then
+				export HISTFILE="${BASH_SESSIONS_OLD_HISTFILE}"
+				rm "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history"
+			fi
+		else
+			echo "bash_sessions: invalid argument \"${2}\""
+		fi
+
+	else
+		echo "bash_sessions: invalid argument \"${1}\""
+
+	fi
+}
+
 # print label for bash prompt
 __bs_ps1 (){
-	if [ -n "$BASH_SESSION_NAME" ]; then
-		echo "[$BASH_SESSION_NAME]"
+	if [ -n "${BASH_SESSION_NAME}" ]; then
+		echo "[${BASH_SESSION_NAME}]"
 	else
 		echo ""
 	fi
@@ -344,28 +445,56 @@ function e {
 	done
 }
 
-# helper function for completion
-function __bs_comp_list {
-	
+# helper function for sessions completion
+function __bs_sessions_comp_list {
 	# create sessions directory if needed
 	[ -d "${BASH_SESSIONS_DIR}" ] || mkdir -p "${BASH_SESSIONS_DIR}"
 	
 	ls "${BASH_SESSIONS_DIR}"
 }
 
-# completion command
-function _bash_session_comp {
-	local curw
+# helper function for options completion
+function __bs_options_comp_list {
+	echo "output"
+	echo "pwd"
+	echo "env"
+	echo "history"
+}
+
+# helper function for option values completion
+function __bs_values_comp_list {
+	echo "on"
+	echo "off"
+}
+
+# completion command for sessions
+function __bs_sessions_comp {
 	COMPREPLY=()
-	curw=${COMP_WORDS[COMP_CWORD]}
-	COMPREPLY=($(compgen -W '`__bs_comp_list`' -- $curw))
+	local current_word=${COMP_WORDS[COMP_CWORD]}
+	COMPREPLY=($(compgen -W '`__bs_sessions_comp_list`' -- ${current_word}))
+	return 0
+}
+
+# completion command for options
+function __bs_options_comp {
+	COMPREPLY=()
+	local current_word=${COMP_WORDS[COMP_CWORD]}
+	local previous_word=${COMP_WORDS[COMP_CWORD-1]}
+	case "${previous_word}" in
+		"S") COMPREPLY=($(compgen -W '`__bs_options_comp_list`' -- ${current_word}));;
+		"output") COMPREPLY=($(compgen -W '`__bs_values_comp_list`' -- ${current_word}));;
+		"pwd") COMPREPLY=($(compgen -W '`__bs_values_comp_list`' -- ${current_word}));;
+		"env") COMPREPLY=($(compgen -W '`__bs_values_comp_list`' -- ${current_word}));;
+		"history") COMPREPLY=($(compgen -W '`__bs_values_comp_list`' -- ${current_word}));;
+	esac
 	return 0
 }
 
 
-# bind completion command for o, f, r to _comp
+# bind completion commands
 shopt -s progcomp
-complete -o filenames -F _bash_session_comp o
-complete -o filenames -F _bash_session_comp f
-complete -o filenames -F _bash_session_comp r
+complete -o filenames -F __bs_sessions_comp o
+complete -o filenames -F __bs_sessions_comp f
+complete -o filenames -F __bs_sessions_comp r
+complete -F __bs_options_comp S
 
