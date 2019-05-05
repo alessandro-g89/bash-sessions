@@ -163,8 +163,17 @@ o (){
 	echo '	unset $line;' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	echo 'done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"' >> "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
 	
-	# the session is executed inside script, to save the output to a file
-	script -a -q "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" -c "bash --rcfile \"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc\""
+
+	# the session is executed inside script, to save the output to a file fi desired, with a lock on "loaded" to mark the session as active
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+		BASH_SESSION_OUTPUT_FILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
+	else
+		BASH_SESSION_OUTPUT_FILE="/dev/null"
+	fi
+	(
+		flock -n 9 || exit 1
+		script -a -q "${BASH_SESSION_OUTPUT_FILE}" -c "bash --rcfile \"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc\""
+	) 9>"${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/loaded"
 	
 	#everything that follows happens after the session is closed
 	
@@ -294,7 +303,7 @@ b (){
 a (){
 	for SESSION_NAME in $(ls "${BASH_SESSIONS_DIR}"); do
 		if [ -f "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded" ]; then
-			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/output"; then
+			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded"; then
 				echo "Loading session \"${SESSION_NAME}\""
 				
 				local temp_rc_file="/tmp/.bash_session_rc_${SESSION_NAME}"
