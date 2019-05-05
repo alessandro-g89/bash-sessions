@@ -32,6 +32,8 @@ bash_sessions lets you save and restore multiple shell "sessions". A session is 
 * environment variables
 * output of the commands printed on the screen (up to the last 1000 lines)
 
+Each one can be enabled or disabled individually for each session, but they are all active by default when a new session is created.
+
 You will find this useful if you tipycally work with multiple terminal windows which have different usage patterns (e.g. for software compilation/installation, for navigating/searching files, for network troubleshooting...). If you use different sessions, you can close a terminal window, re-open it later and restore it to exactly the same state as when you closed it.
 
 The main purpose of bash_sessions is to avoid confusion from multiple command histories when you work with multiple terminal windows in parallel. Depending on your settings, one of these two things can typically happen:
@@ -77,8 +79,8 @@ Now we close the session.
 
     me@localhost[new_session]:/etc $ c
     me@localhost:~ $ echo $FOO
-    
-    me@localhost:~ $ 
+
+    me@localhost:~ $
 
 Now the working directory is back to ~, the history does not contain any of "echo hello", "cd /etc" or "cat issue", and $FOO is empty.
 Close the terminal window and open it again:
@@ -115,15 +117,17 @@ If have more than one session saved, all the sessions which were not explicitly 
 
 bash_sessions defines the following commands that you can use:
 
-    n <session_name>          create a new empty session
-    o <session_name>          open an existing session
-    c                         close currently active session
-    f <session_name>          delete (forget) a session
-    r <old_name> <new_name>   rename a session
-    a                         re-open all previously loaded sessions in separate windows (requires the gtk-launch command, from the libgtk-3-bin package)
-    e                         list existing sessions
+    n <session_name>                create a new empty session
+    o <session_name>                open an existing session
+    c                               close currently active session
+    f <session_name>                delete (forget) a session
+    r <old_name> <new_name>         rename a session
+    b <old_session> <new_session>   duplicate a session
+    a                               re-open all previously loaded sessions in separate windows (requires the gtk-launch command, from the libgtk-3-bin package)
+    e                               list existing sessions
+    S <option> <on|off>             enable or disable options (output, pwd, env, history)
 
-o, f and r support automatic completion with the TAB key.
+o, f, r, and S support automatic completion with the TAB key.
 
 When using the "e" command, currently active sessions are marked with a \* sign. Also, sessions which are not active but have not been explicitly closed with "c" are marked with a + sign. Those can be restored using the "a" command.
 
