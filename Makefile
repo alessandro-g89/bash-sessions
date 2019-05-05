@@ -7,7 +7,7 @@ install:
 	mkdir -p $(DESTDIR)$(prefix)/bin
 	install -m 755 bash_sessions $(DESTDIR)$(prefix)/bin/bash_sessions
 	@echo ""
-	@echo "Installation completed. Please add 'source $(DESTDIR)$(prefix)/bash_sessions' to your .bashrc file"
+	@echo "Installation completed. Please add 'source $(DESTDIR)$(prefix)/bin/bash_sessions' to your .bashrc file"
 	@echo ""
 	@echo "You may also want to add \$$(__bs_ps1) in the PS1 environment variable defined in .bashrc, e.g."
 	@echo ""

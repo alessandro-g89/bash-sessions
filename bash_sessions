@@ -18,29 +18,29 @@ IFS=$'\n\t'
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-BASH_SESSIONS_DIR="$HOME/.bash_sessions"
+BASH_SESSIONS_DIR="${HOME}/.bash_sessions"
 BASH_SESSIONS_TEMP_DIR="/tmp/.bash_sessions/"
 BASH_SESSIONS_MAXIMUM_OUTPUT_LINES="1000"
 
 
 __bs_savepwd(){
 	# check that we are inside a session
-	[ -z "$BASH_SESSION_NAME" ] && return
+	[ -z "${BASH_SESSION_NAME}" ] && return
 	
 	# check that the target directory exists
 	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
 	
 	# save current working directory to a file
-	if [ "$PWD" != "$PREV_PWD" ]; then
-		PREV_PWD="$PWD"
-		echo "$PWD" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
+	if [ "${PWD}" != "${PREV_PWD}" ]; then
+		PREV_PWD="${PWD}"
+		echo "${PWD}" > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd"
 	fi
 }
 
 # save changes to the environment
 __bs_saveenv(){
 	# check that we are inside a session
-	[ -z "$BASH_SESSION_NAME" ] && return
+	[ -z "${BASH_SESSION_NAME}" ] && return
 	
 	# check that the target directory exists
 	[ -d "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}" ] || return
@@ -79,7 +79,7 @@ n (){
 	fi
 	
 	# quit current session, if any
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Error: close current session first"
 		return
 	fi
@@ -112,7 +112,7 @@ o (){
 	fi
 	
 	# quit current session, if any
-	[ -n "$BASH_SESSION_NAME" ] && c
+	[ -n "${BASH_SESSION_NAME}" ] && c
 	
 	# check that the session is not already in use
 	if lsof "${BASH_SESSIONS_DIR}/$1/output" &> /dev/null; then
@@ -192,7 +192,7 @@ c (){
 	fi
 	
 	# check that we are in a session
-	if [ -z "$BASH_SESSION_NAME" ]; then
+	if [ -z "${BASH_SESSION_NAME}" ]; then
 		echo "No session active!"
 		return
 	fi
@@ -210,7 +210,7 @@ f (){
 	fi
 	
 	# check that we are not in a session
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Exit current session first!"
 		return
 	fi
@@ -224,7 +224,7 @@ f (){
 	# ask confirmation and delete session
 	read -p "Delete session \"$1\"? [yN] " -n 1 -r
 	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
+	if [[ ${REPLY} =~ ^[Yy]$ ]]; then
 		rm -f -r "${BASH_SESSIONS_DIR}/$1"
 		echo "Session \"$1\" deleted"
 	fi
@@ -239,7 +239,7 @@ r (){
 	fi
 	
 	# check that we are not in a session
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Exit current session first!"
 		return
 	fi
@@ -269,7 +269,7 @@ b (){
 	fi
 	
 	# check that we are not in a session
-	if [ -n "$BASH_SESSION_NAME" ]; then
+	if [ -n "${BASH_SESSION_NAME}" ]; then
 		echo "Exit current session first!"
 		return
 	fi
@@ -298,7 +298,7 @@ a (){
 				echo "Loading session \"${SESSION_NAME}\""
 				
 				local temp_rc_file="/tmp/.bash_session_rc_${SESSION_NAME}"
-				local temp_desktop_file="$HOME/.local/share/applications/bash-session-${SESSION_NAME}.desktop"
+				local temp_desktop_file="${HOME}/.local/share/applications/bash-session-${SESSION_NAME}.desktop"
 				
 				echo ". ~/.bashrc" > "${temp_rc_file}"
 				echo "o ${SESSION_NAME}" >> "${temp_rc_file}"
@@ -318,8 +318,8 @@ a (){
 
 # print label for bash prompt
 __bs_ps1 (){
-	if [ -n "$BASH_SESSION_NAME" ]; then
-		echo "[$BASH_SESSION_NAME]"
+	if [ -n "${BASH_SESSION_NAME}" ]; then
+		echo "[${BASH_SESSION_NAME}]"
 	else
 		echo ""
 	fi
