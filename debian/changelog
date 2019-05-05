@@ -1,3 +1,9 @@
+bash-sessions (1.1-1) testing; urgency=medium
+
+  * Update to v1.1
+
+ -- Alessandro Grassi <alessandro.g89@gmail.com>  Sun, 05 May 2019 15:19:53 +0200
+
 bash-sessions (1.0-2) testing; urgency=medium
 
   * Improved packaging
