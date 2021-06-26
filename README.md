@@ -43,7 +43,6 @@ The main purpose of bash_sessions is to avoid confusion from multiple command hi
 
 Instead, if you use different sessions for different activities, their command histories remain well separated, and additionally the working directory and the screen contents (up to 1000 lines) are retained. Basically, you can resume your work exactly from where you left it.
 
-Another usage scenario is to easily restore your working environment after a power outage or a desktop crash. When a session is interrupted without being explicitly unloaded first, this can be detected and all the "pending" sessions can be resumed with a single command.
 
 
 
@@ -103,13 +102,6 @@ Now re-open the session:
 
 The working directory changed to /etc, and the output of the previous session appeared again. If you browse the history, you will find "echo hello", "cd /etc" and "cat issue" again. The shell is in the same state as it was before you closed the session!
 You can repeat all of this for as many sessions as you like.
-Now the most useful feature (IMHO). Close and re-open the terminal emulator without closing the session first, then type "a":
-
-    me@localhost:~ $ a
-    me@localhost:~ $
-
-A separate terminal window should appear, where new_session has been automatically loaded.
-If have more than one session saved, all the sessions which were not explicitly closed with "c" can be reloaded in dedicated terminal windows by just saying "a". That is, after a power outage or a crash in X.org, your terminal windows can be quicky restored as they were before.
 
 
 
@@ -120,16 +112,17 @@ bash_sessions defines the following commands that you can use:
     n <session_name>                create a new empty session
     o <session_name>                open an existing session
     c                               close currently active session
-    f <session_name>                delete (forget) a session
-    r <old_name> <new_name>         rename a session
-    b <old_session> <new_session>   duplicate a session
-    a                               re-open all previously loaded sessions in separate windows (requires the gtk-launch command, from the libgtk-3-bin package)
+    f <session_name>                delete an existing session
+    r <old_name> <new_name>         rename an existing session
+    b <old_name> <new_name>        duplicate an existing session
     e                               list existing sessions
     S <option> <on|off>             enable or disable options (output, pwd, env, history)
+    L                               list settings for current session
+    h                               show command reference
 
-o, f, r, and S support automatic completion with the TAB key.
+All command arguments support auto-completion.
 
-When using the "e" command, currently active sessions are marked with a \* sign. Also, sessions which are not active but have not been explicitly closed with "c" are marked with a + sign. Those can be restored using the "a" command.
+When using the "e" command, currently active sessions are marked with a \* sign. Also, sessions which are not active but have not been explicitly closed with "c" are marked with a + sign.
 
 
 

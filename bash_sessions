@@ -1,5 +1,4 @@
 #!/bin/bash
-IFS=$'\n\t'
 
 # bash_sessions - Session manager for the Bash shell
 #
@@ -89,6 +88,9 @@ n (){
 	
 	# copy last part of current history to new session
 	tail -n 100 "${HISTFILE}" > "${BASH_SESSIONS_DIR}/${1}/history"
+	
+	# enabe tracking working directory
+	touch "${BASH_SESSIONS_DIR}/${1}/pwd"
 	
 	# activate new session
 	o "${1}"
@@ -309,32 +311,6 @@ b (){
 	echo "Session \"$1\" copied to \"$2\""
 }
 
-# re-open all session which were not explicitly closed
-a (){
-	for SESSION_NAME in $(ls "${BASH_SESSIONS_DIR}"); do
-		if [ -f "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded" ]; then
-			if ! lsof "${BASH_SESSIONS_DIR}/${SESSION_NAME}/loaded"; then
-				echo "Loading session \"${SESSION_NAME}\""
-				
-				local temp_rc_file="/tmp/.bash_session_rc_${SESSION_NAME}"
-				local temp_desktop_file="${HOME}/.local/share/applications/bash-session-${SESSION_NAME}.desktop"
-				
-				echo ". ~/.bashrc" > "${temp_rc_file}"
-				echo "o ${SESSION_NAME}" >> "${temp_rc_file}"
-				echo "rm -f \"${temp_rc_file}\"" >> "${temp_rc_file}"
-				echo "rm -f \"${temp_desktop_file}\"" >> "${temp_rc_file}"
-				
-				echo "[Desktop Entry]" > "${temp_desktop_file}"
-				echo "Exec=x-terminal-emulator -x bash --rcfile ${temp_rc_file}" >> "${temp_desktop_file}"
-				echo "Type=Application" >> "${temp_desktop_file}"
-				
-				gtk-launch "bash-session-${SESSION_NAME}.desktop"
-				sleep 0.1
-			fi
-		fi
-	done
-}
-
 # change settings for active session
 S (){
 	# check number of arguments
@@ -443,6 +419,63 @@ function e {
 			echo "${i}"
 		fi;
 	done
+}
+
+# list current settings
+L() {
+	# check number of arguments
+	if [ "$#" -ne 0 ]; then
+		echo "Error: ${FUNCNAME[0]}() requires no arguments"
+		return
+	fi
+	
+	# check that we are in a session
+	if [ -z "${BASH_SESSION_NAME}" ]; then
+		echo "No session active!"
+		return
+	fi
+	
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
+		echo "Save console text (output): on"
+	else
+		echo "Save console text (output): off"
+	fi
+	
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
+		echo "Track working directory (pwd): on"
+	else
+		echo "Track working directory (pwd): off"
+	fi
+	
+	if [[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" && -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ]]; then
+		echo "Maintain separate environment variables (env): on"
+	else
+		echo "Maintain separate environment variables (env): off"
+	fi
+	
+	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/history" ]; then
+		echo "Remember typed commands (history): on"
+	else
+		echo "Remember typed commands (history): off"
+	fi
+
+}
+
+h() {
+    echo "bash_sessions command reference"
+    echo ""
+    echo "n <session_name>          create and activate a new session"
+    echo "o <session_name>          open an existing session"
+    echo "c                         close current session"
+    echo "f <session_name>          delete an existing session"
+    echo "r <old_name> <new_name>   rename an existing session"
+    echo "b <old_name> <new_name>   duplicate an existing session"
+    echo "e                         list existing sessions"
+    echo "S <name> <value>          change settings for active session"
+    echo "L                         show settings for current session"
+    echo "h                         show command reference"
+    echo ""
+    echo "All command arguments support auto-completion"
 }
 
 # helper function for sessions completion
