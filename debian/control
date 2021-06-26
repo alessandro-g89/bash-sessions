@@ -8,7 +8,6 @@ Build-Depends: debhelper (>= 9)
 Package: bash-sessions
 Architecture: all
 Depends: ${shlibs:Depends}, ${misc:Depends}, bash, diffutils, bsdutils
-Suggests: libgtk-3-bin
 Priority: optional
 Section: shells
 Description: Session manager for the Bash shell
