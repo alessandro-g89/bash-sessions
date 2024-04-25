@@ -145,7 +145,7 @@ fi
 # switch to working directory
 if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
 	cd "$(cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd")"
-	export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_savepwd"
+	export PROMPT_COMMAND="${PROMPT_COMMAND:+;}__bs_savepwd"
 fi
 
 # load environment
