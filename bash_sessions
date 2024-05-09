@@ -156,7 +156,7 @@ if [[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" || -f "${BASH_S
 	while read line; do
 		unset $line;
 	done < "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted"
-	export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_saveenv"
+	export PROMPT_COMMAND="${PROMPT_COMMAND:+;}__bs_saveenv"
 fi
 
 '  > "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/bashrc"
@@ -342,7 +342,7 @@ S (){
 	elif [ "${1}" == "pwd" ]; then
 		if [ "${2}" == "on" ]; then
 			if ! [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
-				export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_savepwd"
+				export PROMPT_COMMAND="${PROMPT_COMMAND:+;}__bs_savepwd"
 			fi
 		elif [ "${2}" == "off" ]; then
 			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/pwd" ]; then
@@ -356,7 +356,7 @@ S (){
 	elif [ "${1}" == "env" ]; then
 		if [ "${2}" == "on" ]; then
 			if ! [[ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" && -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_deleted" ]]; then
-				export PROMPT_COMMAND="${PROMPT_COMMAND};__bs_saveenv"
+				export PROMPT_COMMAND="${PROMPT_COMMAND:+;}__bs_saveenv"
 			fi
 		elif [ "${2}" == "off" ]; then
 			if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/env_changed" ]; then
