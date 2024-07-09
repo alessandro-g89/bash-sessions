@@ -89,7 +89,7 @@ n (){
 	# copy last part of current history to new session
 	tail -n 100 "${HISTFILE}" > "${BASH_SESSIONS_DIR}/${1}/history"
 	
-	# enabe tracking working directory
+	# enable tracking working directory
 	touch "${BASH_SESSIONS_DIR}/${1}/pwd"
 	
 	# activate new session
@@ -174,7 +174,7 @@ fi
 		cat "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
 	fi
 
-	# the session is executed inside script, to save the output to a file fi desired, with a lock on "loaded" to mark the session as active
+	# the session is executed inside script, to save the output to a file if desired, with a lock on "loaded" to mark the session as active
 	if [ -f "${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output" ]; then
 		BASH_SESSION_OUTPUT_FILE="${BASH_SESSIONS_DIR}/${BASH_SESSION_NAME}/output"
 	else

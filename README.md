@@ -34,7 +34,7 @@ bash_sessions lets you save and restore multiple shell "sessions". A session is 
 
 Each one can be enabled or disabled individually for each session, but they are all active by default when a new session is created.
 
-You will find this useful if you tipycally work with multiple terminal windows which have different usage patterns (e.g. for software compilation/installation, for navigating/searching files, for network troubleshooting...). If you use different sessions, you can close a terminal window, re-open it later and restore it to exactly the same state as when you closed it.
+You will find this useful if you typically work with multiple terminal windows which have different usage patterns (e.g. for software compilation/installation, for navigating/searching files, for network troubleshooting...). If you use different sessions, you can close a terminal window, re-open it later and restore it to exactly the same state as when you closed it.
 
 The main purpose of bash_sessions is to avoid confusion from multiple command histories when you work with multiple terminal windows in parallel. Depending on your settings, one of these two things can typically happen:
 
@@ -114,7 +114,7 @@ bash_sessions defines the following commands that you can use:
     c                               close currently active session
     f <session_name>                delete an existing session
     r <old_name> <new_name>         rename an existing session
-    b <old_name> <new_name>        duplicate an existing session
+    b <old_name> <new_name>         duplicate an existing session
     e                               list existing sessions
     S <option> <on|off>             enable or disable options (output, pwd, env, history)
     L                               list settings for current session
