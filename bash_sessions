@@ -114,7 +114,10 @@ o (){
 	fi
 	
 	# quit current session, if any
-	[ -n "${BASH_SESSION_NAME}" ] && c
+	if [ -n "${BASH_SESSION_NAME}" ]; then
+		echo "Error: close current session first"
+		return
+	fi
 	
 	# check that the session is not already in use
 	if lsof "${BASH_SESSIONS_DIR}/$1/output" &> /dev/null; then
