@@ -207,6 +207,36 @@ fi
 	
 }
 
+# try to recover previously unterminated session
+__bs_recover()
+{
+	# don't recover if we have a session active
+	[ -n "${BASH_SESSION_NAME}" ] && return
+
+	# temporarily set nullglob
+	local changed_nullglob
+	shopt -u | grep -q nullglob && changed=true && shopt -s nullglob
+	local IFS="$(printf '\n\t')" # remove space
+
+	# find first previously loaded session
+	for session_path in "${BASH_SESSIONS_DIR}"/*/loaded; do break; done
+	# without nullglob, we would get the original globbing pattern if no session was found
+	[ -z "${session_path}" ] && return
+	# extract session name from the absolute path
+	local session_dir="${session_path%/*}"
+	local recovered_session_name="${session_dir##*/}"
+	[ $changed ] && shopt -u nullglob; unset changed
+
+	# find PID of our session's script instance and kill it to unblock our session so that we can reopen it
+	for session_pid in $(lsof -c script -t "${BASH_SESSIONS_DIR}/${recovered_session_name}/" >&/dev/null); do
+		kill ${session_pid}
+	done \
+	&& o "${recovered_session_name}"
+}
+
+# execute recovery as the script is being loaded
+__bs_recover
+
 # exit active session
 c (){
 	# check number of arguments
